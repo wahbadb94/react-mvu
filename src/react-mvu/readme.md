@@ -1,0 +1,1 @@
+# This folder simulates an npm package.
