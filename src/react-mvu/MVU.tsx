@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useRef } from "react";
+import { FC, useEffect, useRef } from "react";
 import { ModelUpdate, ViewProps } from "./types";
 import { Cmd } from "./Cmd";
 import { create } from "zustand";
@@ -20,6 +20,10 @@ type MvuState<Model extends object, Msg> = {
   handlePathChange: (location: Location) => void;
 };
 
+const initialized = {
+  value: false,
+};
+
 export default function Mvu<Model extends object, Msg>({
   View,
   init,
@@ -27,6 +31,17 @@ export default function Mvu<Model extends object, Msg>({
   parseUrl,
   enableDevTools = false,
 }: MVUProps<Model, Msg>): JSX.Element {
+  const initializedRef = useRef(initialized);
+
+  useEffect(() => {
+    if (initializedRef.current.value) return;
+    initializedRef.current.value = true;
+
+    // set up routing override
+    // TODO: switch to the broswer navigation API when it is available
+    document.addEventListener("click", overrideRouting);
+  }, []);
+
   const useMvuStoreRef = useRef(
     create<MvuState<Model, Msg>>((set, get) => {
       const [initModel, initCmd] = init();
@@ -95,13 +110,6 @@ export default function Mvu<Model extends object, Msg>({
     (store) => store.processCmdQueue
   );
 
-  // TODO: switch to the broswer navigation API when it is available
-  const navigate = useCallback((path: string, search?: URLSearchParams) => {
-    const queryString = search?.toString() ?? null;
-    const href = path + (queryString ? `?${queryString}` : "");
-    window.history.pushState({}, "", href);
-  }, []);
-
   // process command queue when it changes
   useEffect(() => processCmdQueue(), [commandQueue, processCmdQueue]);
 
@@ -122,11 +130,41 @@ export default function Mvu<Model extends object, Msg>({
 
   return (
     <>
-      <View model={model} dispatch={dispatch} navigate={navigate} />
+      <View model={model} dispatch={dispatch} />
 
       {enableDevTools && (
         <DevToolsInternal currentModel={model} modelHistory={modelHistory} />
       )}
     </>
   );
+}
+
+function overrideRouting(ev: MouseEvent) {
+  const target = ev.target as HTMLElement;
+  if (target.tagName !== "A") return;
+
+  const link = target as HTMLAnchorElement;
+
+  const newUrl = new URL(link.href);
+
+  // if we are linking externally, then allow default behavior
+  if (newUrl.origin !== document.location.origin) return;
+
+  // otherwise override internal routes with history api
+  // to keep the current page loaded, and do all routing
+  // in a SPA style.
+
+  const routesAreSame =
+    newUrl.pathname === document.location.pathname &&
+    newUrl.search === document.location.search &&
+    newUrl.hash === document.location.hash;
+
+  console.log(newUrl.pathname);
+
+  if (!routesAreSame) {
+    history.pushState({}, "", newUrl);
+  }
+
+  ev.preventDefault();
+  ev.stopPropagation();
 }

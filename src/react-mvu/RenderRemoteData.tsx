@@ -9,11 +9,15 @@ export default function RenderRemoteData<T>({
     case "failed":
       return <>Something went wrong</>;
     case "inProgress":
-      return <>Loading...</>;
+      return remoteData.placeholder !== undefined ? (
+        render(remoteData.placeholder, true)
+      ) : (
+        <>Loading...</>
+      );
     case "notStarted":
       return <></>;
     case "succeeded":
-      return render(remoteData.data);
+      return render(remoteData.data, false);
     default:
       return unreachable(remoteData);
   }
@@ -21,5 +25,5 @@ export default function RenderRemoteData<T>({
 
 type RenderRemoteDataProps<T> = {
   remoteData: RemoteData<T>;
-  render: (data: T) => JSX.Element;
+  render: (data: T, fetching: boolean) => JSX.Element;
 };

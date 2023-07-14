@@ -69,7 +69,7 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
         ];
       },
     }),
-  parseUrl: () =>
+  parseUrl: ({ pokemonListResponse }) =>
     Parser.map(([, searchParams]) => {
       const { limit, offset } = match.tagged(searchParams).on({
         none: () => ({ limit: 20, offset: 0 }),
@@ -79,13 +79,26 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
             some: ({ data: { limit = 20, offset = 0 } }) => ({ limit, offset }),
           }),
       });
+
       const [cmd, cachedData] = pokemonService.getList(
         { limit, offset },
         (response) => Msg("gotPokemon")({ response })
       );
 
-      const pokemonListResponse = RemoteData.mapCache(cachedData);
+      const placeholder = match.tagged(pokemonListResponse).on({
+        succeeded: ({ data }) => data,
+        inProgress: ({ placeholder }) => placeholder,
+        failed: () => undefined,
+        notStarted: () => undefined,
+      });
 
-      return [{ pokemonListResponse, limit, offset }, cmd];
+      return [
+        {
+          pokemonListResponse: RemoteData.mapCache(cachedData, placeholder),
+          limit,
+          offset,
+        },
+        cmd,
+      ];
     }, parser),
 };

@@ -6,17 +6,12 @@ import match from "../../utilities/matcher";
 
 export function View({
   model: { pokemon, backToListUrl },
-  navigate,
 }: ViewProps<Model, Msg>): JSX.Element {
   return (
     <RenderRemoteData
       remoteData={pokemon}
       render={(p) => (
-        <RenderPokemonDetails
-          pokemon={p}
-          backToListUrl={backToListUrl}
-          navigate={navigate}
-        />
+        <RenderPokemonDetails pokemon={p} backToListUrl={backToListUrl} />
       )}
     />
   );
@@ -25,40 +20,38 @@ export function View({
 function RenderPokemonDetails({
   pokemon: { name, sprites, types, id },
   backToListUrl,
-  navigate,
 }: {
   pokemon: Pokemon;
-} & Pick<Model, "backToListUrl"> &
-  Pick<ViewProps<Model, Msg>, "navigate">) {
+} & Pick<Model, "backToListUrl">) {
   return (
     <div className={`p-8`}>
-      <div
+      <a
         className="hover:underline cursor-pointer text-sky-900 mb-2"
-        onClick={() => navigate(backToListUrl)}
+        href={backToListUrl}
       >
         Back to List
-      </div>
+      </a>
       <div
         className={`flex flex-row justify-between items-center py-4 px-8 border border-black rounded-md mb-4 ${getTypeClassNameSuble(
           types[0].type.name
         )}`}
       >
-        <span
+        <a
           className="hover:underline cursor-pointer"
-          onClick={() => navigate(`/pokemon/${id - 1}`)}
+          href={`/pokemon/${id - 1}`}
         >
           prev
-        </span>
+        </a>
         <h1 className={"text-4xl capitalize"}>
           #{id}: {name}
         </h1>
 
-        <span
+        <a
           className="hover:underline cursor-pointer"
-          onClick={() => navigate(`/pokemon/${id + 1}`)}
+          href={`/pokemon/${id + 1}`}
         >
           next
-        </span>
+        </a>
       </div>
 
       <div className="grid grid-cols-2">

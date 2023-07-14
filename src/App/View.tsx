@@ -5,37 +5,28 @@ import * as PokemonDetails from "../pages/PokemonDetails";
 import * as HomePage from "../pages/Home";
 import { unreachable } from "../utilities/matcher";
 
-// View
-export function View({
-  dispatch,
-  model,
-  navigate,
-}: ViewProps<Model, Msg>): JSX.Element {
+export function View({ dispatch, model }: ViewProps<Model, Msg>): JSX.Element {
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-200">
       {/* Main Nav */}
-      <nav className="bg-emerald-600 text-white">
+      <nav className="bg-emerald-600 text-white shadow-md">
         <ul className="flex flex-row justify-end">
           {navLinks.map((link) => (
-            <span
+            <a
               key={link.label}
               className="cursor-pointer p-4 hover:bg-emerald-700 font-bold transition-colors"
-              onClick={() => navigate(link.path)}
+              href={link.path}
             >
               {link.label}
-            </span>
+            </a>
           ))}
         </ul>
       </nav>
 
       {/* Main Content */}
       <main className="grow flex flex-row justify-center">
-        <div className="h-full w-full max-w-7xl bg-white">
-          <RenderActivePage
-            dispatch={dispatch}
-            model={model}
-            navigate={navigate}
-          />
+        <div className="h-full w-full max-w-7xl">
+          <RenderActivePage dispatch={dispatch} model={model} />
         </div>
       </main>
     </div>
@@ -45,7 +36,6 @@ export function View({
 function RenderActivePage({
   model: { activePage },
   dispatch,
-  navigate,
 }: ViewProps<Model, Msg>): JSX.Element {
   switch (activePage.tag) {
     case "home":
@@ -55,7 +45,6 @@ function RenderActivePage({
         <PokemonPage.View
           model={activePage}
           dispatch={(msg) => dispatch({ tag: "pokemon", msg })}
-          navigate={navigate}
         />
       );
     case "pokemonDetails":
@@ -63,7 +52,6 @@ function RenderActivePage({
         <PokemonDetails.View
           model={activePage}
           dispatch={(msg) => dispatch({ tag: "pokemonDetails", msg })}
-          navigate={navigate}
         />
       );
     case "loading":

@@ -77,7 +77,9 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
             Cmd.map(cmd)((msg) => Msg("pokemonDetails")({ msg })),
           ],
           PokemonDetailsPage.parseUrl({
-            ...PokemonDetailsPage.init()[0],
+            ...(activePage.tag === "pokemonDetails"
+              ? activePage
+              : PokemonDetailsPage.init()[0]),
             backToListUrl: match.tagged(activePage).on({
               home: () => "/pokemon/",
               loading: () => "/pokemon/",
@@ -97,14 +99,18 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
             Page("pokemon")(pokemonModel),
             Cmd.map(cmd)((msg) => Msg("pokemon")({ msg })),
           ],
-          PokemonPage.parseUrl(PokemonPage.init()[0])
+          PokemonPage.parseUrl(
+            activePage.tag === "pokemon" ? activePage : PokemonPage.init()[0]
+          )
         ),
         Parser.map(
           ([homeModel, cmd]) => [
             Page("home")(homeModel),
             Cmd.map(cmd)((msg) => Msg("home")({ msg })),
           ],
-          HomePage.parseUrl(HomePage.init()[0])
+          HomePage.parseUrl(
+            activePage.tag === "home" ? activePage : HomePage.init()[0]
+          )
         )
       )
     ),

@@ -55,7 +55,7 @@ export default match;
 
 export type Tagged<
   T extends string,
-  P extends Record<string, unknown> | null = null
+  P extends object | null = null
 > = null extends P ? { tag: T } : { tag: T } & P;
 
 export const tagged =
@@ -65,6 +65,7 @@ export const tagged =
     ...data,
   });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function unreachable(_: never): never {
   throw "this code should be unreachable.";
 }

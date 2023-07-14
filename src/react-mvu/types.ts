@@ -13,5 +13,4 @@ export type ViewFC<Model, Msg> = FC<ViewProps<Model, Msg>>;
 export type ViewProps<Model, Msg> = {
   model: Model;
   dispatch: (msg: Msg) => void;
-  navigate: (path: string, searchParams?: URLSearchParams) => void;
 };
