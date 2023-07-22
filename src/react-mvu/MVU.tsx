@@ -82,8 +82,7 @@ export default function Mvu<Model extends object, Msg>({
         },
         handlePathChange: (location) =>
           set((prev) => {
-            const result = Parser.run(
-              parseUrl(prev.model),
+            const result = Parser.parse(parseUrl(prev.model))(
               location.pathname + location.search
             );
             if (result.tag === "fail") return {};

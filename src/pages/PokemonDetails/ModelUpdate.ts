@@ -1,6 +1,7 @@
 import { RemoteData } from "../../react-mvu/RemoteData";
 import { Cmd } from "../../react-mvu/Cmd";
-import { Parser, int, opt, s, seq } from "../../react-mvu/Parser";
+import { UrlParser } from "../../react-mvu/UrlParser2";
+const { int, s, path } = UrlParser;
 import { Pokemon } from "../../models/Pokemon";
 import pokemonService from "../../services/pokemonService";
 import match, { Tagged, Constructors } from "../../utilities/matcher";
@@ -14,8 +15,8 @@ export type Model = {
 export type Msg = Tagged<"gotPokemon", { pokemon: Pokemon }>;
 const Msg = Constructors<Msg>();
 
-/** matches the route `/pokemon/{int}/` */
-const parser = seq(s("/pokemon/"), int, opt(s("/")));
+/** matches the route `/pokemon/{int}` */
+const parser = path(s("pokemon"), int);
 
 export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
   init: () => [
@@ -30,11 +31,11 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
       ],
     }),
   parseUrl: ({ backToListUrl }) =>
-    Parser.map(([, pokemonId]) => {
+    UrlParser.map(parser)((pokemonId) => {
       const [cmd, cachedData] = pokemonService.getById(pokemonId, (pokemon) =>
         Msg("gotPokemon")({ pokemon })
       );
 
       return [{ pokemon: RemoteData.mapCache(cachedData), backToListUrl }, cmd];
-    }, parser),
+    }),
 };

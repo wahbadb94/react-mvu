@@ -10,8 +10,7 @@ export const UrlParser = {
       fCmd: (a: Cmd<MsgA>) => Cmd<MsgB>
     ) =>
     (parser: UrlParser<ModelA, MsgA>) =>
-      Parser.map(
-        ([modelA, cmdA]) => [fModel(modelA), fCmd(cmdA)] as const,
-        parser
+      Parser.map(parser)(
+        ([modelA, cmdA]) => [fModel(modelA), fCmd(cmdA)] as const
       ),
 };

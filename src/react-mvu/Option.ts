@@ -21,9 +21,18 @@ const flatMap = <A>(opt: Option<A>) => ({
 const some = <T>(data: T) => tagged("some")({ data });
 const none = { tag: "none" };
 
+const withDefault =
+  <A>(opt: Option<A>) =>
+  (deflt: A): A =>
+    match.tagged(opt).on({
+      none: () => deflt,
+      some: ({ data }) => data,
+    });
+
 export const Option = {
   map,
   flatMap,
   some,
   none,
+  withDefault,
 };

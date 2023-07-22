@@ -1,71 +1,88 @@
-import { Tagged } from "../utilities/matcher";
+import { pipe } from "fp-ts/lib/function";
+import match from "../utilities/matcher";
 import { Option } from "./Option";
+import { ParseResult } from "./ParseResult";
+import { Monad, Monad1 } from "fp-ts/lib/Monad";
+import { Do as _Do } from "fp-ts-contrib/lib/Do";
 
-export function test() {
-  const parse3DigitStr = Parser.map(
-    ([[a, b], c]) => `${a}${b}${c}` as const,
-    andThen(andThen(digit)(digit))(digit)
-  );
-  const parse3DigitInt = Parser.map(Number, parse3DigitStr);
-  console.log(run(parse3DigitInt, "123"));
-
-  const pikachuUrl = seq(s("pokemon/"), s("pikachu/"), s("abilities/"));
-  console.log(run(pikachuUrl, "pokemon/pikachu/abilities/14"));
-}
+const { ok, fail } = ParseResult;
 
 /* ----------------------------------------------------------------------------
  *
- * ------------------------------- Operators ----------------------------------
+ * --------------------------------- Types ------------------------------------
  *
  * ------------------------------------------------------------------------- */
 
-const run = <A>(parser: Parser<A>, s: string) => parser.fn(s);
+export const URI = "Parser";
+export type URI = typeof URI;
 
-const map = <A, const B>(f: (a: A) => B, parser: Parser<A>): Parser<B> => ({
-  fn: (str) => {
-    const result = run(parser, str);
-    if (result.tag === "fail") return result;
+declare module "fp-ts/HKT" {
+  interface URItoKind<A> {
+    [URI]: Parser<A>;
+  }
+}
 
-    const { parsed, rest } = result;
-    return ok(f(parsed), rest);
-  },
-});
+export type Parser<A> = { fn: ParserFn<A> };
+type ParserFn<A> = (input: string) => ParseResult<A>;
 
-const ret = <A>(a: A): Parser<A> => ({
+/* ----------------------------------------------------------------------------
+ *
+ * ------------------------------- Operatora ----------------------------------
+ *
+ * ------------------------------------------------------------------------- */
+
+const parse = <A>({ fn }: Parser<A>) => fn;
+
+const map =
+  <A>(parser: Parser<A>) =>
+  <const B>(f: (a: A) => B): Parser<B> => ({
+    fn: (str) => ParseResult.map(parser.fn(str))(f),
+  });
+
+const bind =
+  <A>(parser: Parser<A>) =>
+  <const B>(f: (a: A) => Parser<B>): Parser<B> => ({
+    fn: (str) =>
+      match.tagged(parser.fn(str)).on({
+        fail: (f) => f,
+        ok: ({ parsed, rest }) => f(parsed).fn(rest),
+      }),
+  });
+
+const unit = <const A>(a: A): Parser<A> => ({
   fn: (str) => ok(a, str),
 });
 
-const apply = <A, B>(fP: Parser<(a: A) => B>, xP: Parser<A>) =>
-  map(([f, x]) => f(x), andThen(fP)(xP));
+const apply =
+  <A, const B>(fP: Parser<(a: A) => B>) =>
+  (xP: Parser<A>) =>
+    bind(fP)((f) => bind(xP)((a) => unit(f(a))));
 
 const lift2 =
   <A, B, C>(f: (a: A) => (b: B) => C) =>
   (xP: Parser<A>) =>
   (yP: Parser<B>) =>
-    apply(apply(ret(f), xP), yP);
-
-const parseZeroOrMore =
-  <A>(parser: Parser<A>) =>
-  (input: string): [A[], string] => {
-    const firstResult = run(parser, input);
-    if (firstResult.tag === "fail") return [[], input];
-
-    const { parsed: firstValue, rest: inputAfterFirstParser } = firstResult;
-    const [subsequentValues, remainingInput] = parseZeroOrMore(parser)(
-      inputAfterFirstParser
+    pipe(
+      unit(f),
+      (fP) => apply(fP)(xP),
+      (fP) => apply(fP)(yP)
     );
 
-    return [[firstValue, ...subsequentValues], remainingInput];
-  };
+/* ----------------------------------------------------------------------------
+ *
+ * --------------------------- Type Classes / Do ------------------------------
+ *
+ * ------------------------------------------------------------------------- */
 
-export const Parser = {
-  run,
-  map,
-  ret,
-  apply,
-  lift2,
-  parseZeroOrMore,
+const Monad: Monad1<URI> = {
+  URI,
+  of: unit,
+  ap: (fab, fa) => apply(fab)(fa),
+  map: (fa, f) => map(fa)(f),
+  chain: (fa, f) => bind(fa)(f),
 };
+
+const Do = _Do(Monad);
 
 /* ----------------------------------------------------------------------------
  *
@@ -73,29 +90,82 @@ export const Parser = {
  *
  * ------------------------------------------------------------------------- */
 
-export const andThen =
+const both =
   <A>(parser1: Parser<A>) =>
-  <B>(parser2: Parser<B>): Parser<[A, B]> => ({
-    fn: (str) => {
-      const result1 = parser1.fn(str);
-      if (result1.tag === "fail") return result1;
+  <B>(parser2: Parser<B>) =>
+    Do.bind("a", parser1)
+      .bind("b", parser2)
+      .return(({ a, b }) => [a, b] as const);
 
-      const { parsed: parsed1, rest: rest1 } = result1;
+const left =
+  <L>(parserL: Parser<L>) =>
+  <R>(parserR: Parser<R>) =>
+    Do.bind("l", parserL)
+      .bind("r", parserR)
+      .return(({ l }) => l);
 
-      const result2 = parser2.fn(rest1);
-      if (result2.tag === "fail") return result2;
+const right =
+  <L>(parserL: Parser<L>) =>
+  <R>(parserR: Parser<R>) =>
+    Do.bind("l", parserL)
+      .bind("r", parserR)
+      .return(({ r }) => r);
 
-      const { parsed: parsed2, rest: rest2 } = result2;
+const between =
+  <L>(pL: Parser<L>) =>
+  <M>(pM: Parser<M>) =>
+  <R>(pR: Parser<R>) =>
+    Do.bind("l", pL)
+      .bind("m", pM)
+      .bind("r", pR)
+      .return(({ m }) => m);
 
-      return ok([parsed1, parsed2], rest2);
-    },
-  });
-
-export const many = <A>(parser: Parser<A>): Parser<A[]> => ({
-  fn: (str) => ok(...Parser.parseZeroOrMore(parser)(str)),
+const peek = <A>(parser: Parser<A>): Parser<A> => ({
+  fn: (input) =>
+    match.tagged(parser.fn(input)).on<ParseResult<A>>({
+      fail: (f) => f,
+      ok: ({ parsed }) => ok(parsed, input),
+    }),
 });
 
-export const either =
+const sepBy1 =
+  <Sep>(sepaator: Parser<Sep>) =>
+  <A>(p: Parser<A>) => {
+    const sepThenP = right(sepaator)(p);
+    const firstThenList = both(p)(many0(sepThenP));
+    return map(firstThenList)(([p, pList]) => [p, ...pList] as A[]);
+  };
+
+const sepBy0 =
+  <Sep>(sepaator: Parser<Sep>) =>
+  <A>(parser: Parser<A>) =>
+    either(sepBy1(sepaator)(parser))(unit([] as A[]));
+
+const parseZeroOrMore =
+  <A>(parser: Parser<A>) =>
+  (input: string): [A[], string] =>
+    match.tagged(parser.fn(input)).on({
+      fail: () => [[], input],
+      ok: ({ parsed, rest }) =>
+        pipe(
+          parseZeroOrMore(parser)(rest),
+          ([subsequentValues, remainingInput]) => [
+            [parsed, ...subsequentValues],
+            remainingInput,
+          ]
+        ),
+    });
+
+const many0 = <A>(parser: Parser<A>): Parser<A[]> => ({
+  fn: (str) => ok(...parseZeroOrMore(parser)(str)),
+});
+
+const many1 = <A>(parser: Parser<A>) =>
+  Do.bind("head", parser)
+    .bind("tail", many0(parser))
+    .return(({ head, tail }) => [head, ...tail]);
+
+const either =
   <A>(parser1: Parser<A>) =>
   <B>(parser2: Parser<B>): Parser<A | B> => ({
     fn: (str) => {
@@ -106,9 +176,7 @@ export const either =
     },
   });
 
-export const seq = <P extends Parser<unknown>[]>(
-  ...parsers: P
-): Parser<SeqOf<P>> => ({
+const seq = <P extends Parser<unknown>[]>(...parsers: P): Parser<SeqOf<P>> => ({
   fn: (str) => {
     const seqParsed = [];
     let toParse = str;
@@ -124,17 +192,30 @@ export const seq = <P extends Parser<unknown>[]>(
   },
 });
 
-export const opt = <A>(parser: Parser<A>): Parser<Option<A>> => {
-  const _some = Parser.map(Option.some, parser);
-  const _none = Parser.ret(Option.none as Option<A>);
+const opt = <A>(parser: Parser<A>): Parser<Option<A>> => {
+  const _some = map(parser)(Option.some);
+  const _none = unit(Option.none as Option<A>);
   return either(_some)(_none);
 };
 
-type SeqOf<P extends Parser<unknown>[]> = {
+const exact = <A>(parser: Parser<A>): Parser<A> => ({
+  fn: (str) =>
+    match.tagged(parser.fn(str)).on({
+      fail: (f) => f,
+      ok: (ok) =>
+        ok.rest.length > 0
+          ? fail(
+              `Parser was specified as "complete". Parsed "${ok.parsed}", but had "${ok.rest}" left over.`
+            )
+          : ok,
+    }),
+});
+
+export type SeqOf<P extends Parser<unknown>[]> = {
   [Index in keyof P]: P[Index] extends Parser<infer U> ? U : never;
 };
 
-export const oneOf = <P extends Parser<unknown>[]>(
+const oneOf = <P extends Parser<unknown>[]>(
   ...parsers: P
 ): Parser<OneOf<P>> => ({
   fn: (str) =>
@@ -151,8 +232,10 @@ type OneOf<P extends Parser<unknown>[]> = {
   [Index in keyof P]: P[Index] extends Parser<infer T> ? T : never;
 }[number];
 
-export const anyOf = <S extends string[]>(...strings: S): Parser<S[number]> =>
-  oneOf(...strings.map((str: S[number]) => s(str)));
+export const erase = Symbol();
+
+const erasable = (parser: Parser<unknown>): Parser<typeof erase> =>
+  map(parser)(() => erase);
 
 /* ----------------------------------------------------------------------------
  *
@@ -160,15 +243,18 @@ export const anyOf = <S extends string[]>(...strings: S): Parser<S[number]> =>
  *
  * ------------------------------------------------------------------------- */
 
-export const s = <S extends string>(s: S): Parser<S> => ({
+const s = <S extends string>(s: S): Parser<S> => ({
   fn: (str) =>
     str.substring(0, s.length) === s
       ? ok(s, str.substring(s.length))
       : fail(`could not parse ${s}" from "${str}"`),
 });
 
+const anyOf = <S extends string[]>(...strings: S): Parser<S[number]> =>
+  oneOf(...strings.map((str: S[number]) => s(str)));
+
 const digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
-const chars = [
+const charsLower = [
   "a",
   "b",
   "c",
@@ -196,48 +282,97 @@ const chars = [
   "y",
   "z",
 ] as const;
-const _alpha = anyOf(...chars);
-export const alpha = either(_alpha)(
-  Parser.map((s) => s.toUpperCase() as Uppercase<typeof s>, _alpha)
+const charsUpper = charsLower.map(
+  (c) => c.toUpperCase() as Uppercase<typeof c>
 );
-export const word = Parser.map((chars) => chars.join(""), many(alpha));
+const chars = [...charsLower, ...charsUpper];
+const alpha = anyOf(...chars);
+const word = map(many1(alpha))((chars) => chars.join(""));
 
-export const digit = anyOf(...digits);
-export const digitN = Parser.map(Number, digit);
+const digit = anyOf(...digits);
+const digitN = map(digit)(Number);
 
-export const int = Parser.map(
-  (digits) =>
-    [...digits] // make a copy, and reverse for easy base10 calculation
-      .reverse()
-      .reduce((sum, digit, index) => sum + digit * Math.pow(10, index), 0),
-  many(digitN)
+const int = map(many1(digitN))((digits) =>
+  [...digits] // make a copy, and reverse for easy base10 calculation
+    .reverse()
+    .reduce((sum, digit, index) => sum + digit * Math.pow(10, index), 0)
+);
+
+const alphaNumericChar = either(digit)(alpha);
+const alphaNumericString = map(many1(alphaNumericChar))((chars) =>
+  chars.join("")
 );
 
 /* ----------------------------------------------------------------------------
  *
- * ------------------------------ Constructors --------------------------------
+ * -------------------------------- Builder -----------------------------------
  *
  * ------------------------------------------------------------------------- */
 
-const ok = <A>(parsed: A, rest: string): ParseOk<A> => ({
-  tag: "ok",
-  parsed,
-  rest,
+interface ParserBuilder<A> {
+  parser: Parser<A>;
+  map: <const B>(f: (a: A) => B) => ParserBuilder<B>;
+  andThen: <const B>(f: (a: A) => ParserBuilder<B>) => ParserBuilder<B>;
+}
+
+const builder = <A>(parser: Parser<A>): ParserBuilder<A> => ({
+  parser,
+  map: <const B>(f: (a: A) => B) => builder(map(parser)(f)),
+  andThen: <const B>(f: (a: A) => ParserBuilder<B>) =>
+    builder(bind(parser)((a) => f(a).parser)),
 });
 
-const fail = (error: string): ParseFail => ({
-  tag: "fail",
-  error,
-});
+export const ParserBuilder = {
+  s: <const S extends string>(str: S) => builder(s(str)),
+  int: builder(int),
+  digit: builder(digit),
+  digitN: builder(digitN),
+  alpha: builder(alpha),
+  word: builder(word),
+  alphaNumericChar: builder(alphaNumericChar),
+  alphaNumericString: builder(alphaNumericString),
+};
 
 /* ----------------------------------------------------------------------------
  *
- * --------------------------------- Types ------------------------------------
+ * ------------------------------- Url Parsing --------------------------------
  *
  * ------------------------------------------------------------------------- */
 
-export type Parser<A> = { fn: ParserFn<A> };
-type ParserFn<A> = (str: string) => ParseResult<A>;
-export type ParseResult<A> = ParseOk<A> | ParseFail;
-export type ParseOk<A> = Tagged<"ok", { parsed: A; rest: string }>;
-export type ParseFail = Tagged<"fail", { error: string }>;
+export const Parser = {
+  parse,
+  map,
+  bind,
+  unit,
+  apply,
+  lift2,
+  s,
+  int,
+  alpha,
+  word,
+  digit,
+  digitN,
+  alphaNumericChar,
+  alphaNumericString,
+  anyOf,
+  oneOf,
+  opt,
+  seq,
+  both,
+  either,
+  many0,
+  many1,
+  sepBy0,
+  sepBy1,
+  exact,
+  left,
+  right,
+  between,
+  ok,
+  fail,
+  builder,
+  peek,
+  Do,
+  erasable,
+  erase,
+};

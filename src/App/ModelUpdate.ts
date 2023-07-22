@@ -1,5 +1,6 @@
 import match, { Tagged, Constructors } from "../utilities/matcher";
-import { Parser, oneOf } from "../react-mvu/Parser";
+import { UrlParser } from "../react-mvu/UrlParser2";
+const { oneOf } = UrlParser;
 import * as HomePage from "../pages/Home";
 import * as PokemonDetailsPage from "../pages/PokemonDetails";
 import * as PokemonPage from "../pages/Pokemon";
@@ -68,22 +69,36 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
       },
     }),
   parseUrl: ({ activePage }) =>
-    Parser.map(
-      ([page, cmd]) => [{ activePage: page }, cmd],
+    UrlParser.map(
       oneOf(
-        Parser.map(
-          ([pokeDetailsModel, cmd]) => [
-            Page("pokemonDetails")(pokeDetailsModel),
-            Cmd.map(cmd)((msg) => Msg("pokemonDetails")({ msg })),
-          ],
+        // home
+        UrlParser.map(
+          HomePage.parseUrl(
+            activePage.tag === "home" ? activePage : HomePage.init()[0]
+          )
+        )(([homeModel, cmd]) => [
+          Page("home")(homeModel),
+          Cmd.map(cmd)((msg) => Msg("home")({ msg })),
+        ]),
+        // pokemon
+        UrlParser.map(
+          PokemonPage.parseUrl(
+            activePage.tag === "pokemon" ? activePage : PokemonPage.init()[0]
+          )
+        )(([pokemonModel, cmd]) => [
+          Page("pokemon")(pokemonModel),
+          Cmd.map(cmd)((msg) => Msg("pokemon")({ msg })),
+        ]),
+        // pokemonDetails
+        UrlParser.map(
           PokemonDetailsPage.parseUrl({
             ...(activePage.tag === "pokemonDetails"
               ? activePage
               : PokemonDetailsPage.init()[0]),
             backToListUrl: match.tagged(activePage).on({
-              home: () => "/pokemon/",
-              loading: () => "/pokemon/",
-              notFound: () => "/pokemon/",
+              home: () => "/pokemon",
+              loading: () => "/pokemon",
+              notFound: () => "/pokemon",
               pokemon: ({ limit, offset }) =>
                 "/pokemon?" +
                 new URLSearchParams({
@@ -93,25 +108,10 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
               pokemonDetails: ({ backToListUrl }) => backToListUrl,
             }),
           })
-        ),
-        Parser.map(
-          ([pokemonModel, cmd]) => [
-            Page("pokemon")(pokemonModel),
-            Cmd.map(cmd)((msg) => Msg("pokemon")({ msg })),
-          ],
-          PokemonPage.parseUrl(
-            activePage.tag === "pokemon" ? activePage : PokemonPage.init()[0]
-          )
-        ),
-        Parser.map(
-          ([homeModel, cmd]) => [
-            Page("home")(homeModel),
-            Cmd.map(cmd)((msg) => Msg("home")({ msg })),
-          ],
-          HomePage.parseUrl(
-            activePage.tag === "home" ? activePage : HomePage.init()[0]
-          )
-        )
+        )(([pokeDetailsModel, cmd]) => [
+          Page("pokemonDetails")(pokeDetailsModel),
+          Cmd.map(cmd)((msg) => Msg("pokemonDetails")({ msg })),
+        ])
       )
-    ),
+    )(([page, cmd]) => [{ activePage: page }, cmd]),
 };
