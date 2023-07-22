@@ -1,6 +1,6 @@
 import match, { Tagged, Constructors } from "../utilities/matcher";
-import { UrlParser } from "../react-mvu/UrlParser2";
-const { oneOf } = UrlParser;
+import { UrlParser } from "../react-mvu/UrlParser";
+const { oneOf, map } = UrlParser;
 import * as HomePage from "../pages/Home";
 import * as PokemonDetailsPage from "../pages/PokemonDetails";
 import * as PokemonPage from "../pages/Pokemon";
@@ -69,10 +69,10 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
       },
     }),
   parseUrl: ({ activePage }) =>
-    UrlParser.map(
+    map(
       oneOf(
         // home
-        UrlParser.map(
+        map(
           HomePage.parseUrl(
             activePage.tag === "home" ? activePage : HomePage.init()[0]
           )
@@ -80,8 +80,9 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
           Page("home")(homeModel),
           Cmd.map(cmd)((msg) => Msg("home")({ msg })),
         ]),
+
         // pokemon
-        UrlParser.map(
+        map(
           PokemonPage.parseUrl(
             activePage.tag === "pokemon" ? activePage : PokemonPage.init()[0]
           )
@@ -89,8 +90,9 @@ export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
           Page("pokemon")(pokemonModel),
           Cmd.map(cmd)((msg) => Msg("pokemon")({ msg })),
         ]),
+
         // pokemonDetails
-        UrlParser.map(
+        map(
           PokemonDetailsPage.parseUrl({
             ...(activePage.tag === "pokemonDetails"
               ? activePage

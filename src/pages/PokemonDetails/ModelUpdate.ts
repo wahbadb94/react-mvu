@@ -1,11 +1,11 @@
 import { RemoteData } from "../../react-mvu/RemoteData";
 import { Cmd } from "../../react-mvu/Cmd";
-import { UrlParser } from "../../react-mvu/UrlParser2";
-const { int, s, path } = UrlParser;
 import { Pokemon } from "../../models/Pokemon";
 import pokemonService from "../../services/pokemonService";
 import match, { Tagged, Constructors } from "../../utilities/matcher";
 import { ModelUpdate } from "../../react-mvu/types";
+import { UrlParser } from "../../react-mvu/UrlParser";
+const { s, int, path } = UrlParser;
 
 export type Model = {
   pokemon: RemoteData<Pokemon>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import testHelpers from "./testHelpers";
-import { UrlParser } from "./UrlParser3";
+import { UrlParser } from "./UrlParser";
 import { Parser } from "./Parser";
 import { Option } from "./Option";
 

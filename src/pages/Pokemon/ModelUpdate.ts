@@ -7,7 +7,7 @@ import pokemonService, {
 } from "../../services/pokemonService";
 import match, { Tagged, Constructors } from "../../utilities/matcher";
 import { ModelUpdate } from "../../react-mvu/types";
-import { UrlParser } from "../../react-mvu/UrlParser3";
+import { UrlParser } from "../../react-mvu/UrlParser";
 
 export type Model = {
   pokemonListResponse: RemoteData<FetchPokemonResponse>;
