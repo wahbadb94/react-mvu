@@ -24,7 +24,9 @@ function RenderPokemonDetails({
   pokemon: Pokemon;
 } & Pick<Model, "backToListUrl">) {
   return (
-    <div className={`p-8`}>
+    <div
+      className={`p-8 bg-white h-full border-x border-solid border-y-0 border-gray-300`}
+    >
       <a
         className="hover:underline cursor-pointer text-sky-900 mb-2"
         href={backToListUrl}

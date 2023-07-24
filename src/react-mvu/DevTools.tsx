@@ -16,7 +16,7 @@ export default function DevToolsInternal<T extends object>({
 
   const OpenCloseButton = (
     <button
-      className="absolute bottom-0 right-0 p-2 rounded-md border-2 border-slate-700 bg-slate-500 text-purple-50 font-semibold"
+      className="absolute bottom-2 right-2 p-2 rounded-md border-2 border-slate-700 bg-slate-500 text-purple-50 font-semibold"
       onClick={() => setShow((prev) => !prev)}
     >
       DevTools

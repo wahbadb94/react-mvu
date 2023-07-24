@@ -20,10 +20,10 @@ export function View({
             : null;
 
         return (
-          <div className="h-full p-4 flex flex-col gap-4">
+          <div className="h-full p-4 flex flex-col gap-4 overflow-y-hidden">
             {/* The Controls */}
-            <div className="rounded-md shadow border border-gray-200 bg-gray-100">
-              <div className="p-2 flex flex-row justify-between">
+            <div className="rounded-md shadow border border-gray-300 bg-white">
+              <div className="p-4 flex flex-row justify-between">
                 {/* Counts */}
                 <div className="text-sm text-gray-600 flex flex-row items-center">
                   {offset + 1} to {offset + limit} of {count}
@@ -32,14 +32,14 @@ export function View({
                 {/* Pagination */}
                 <div>
                   <a
-                    className="rounded-full px-2 py-1 bg-gray-100 hover:[&:not([aria-disabled]=true)]:brightness-95 active:[&:not([aria-disabled]=true)]shadow-inner transition aria-disabled:opacity-30"
+                    className="rounded-full px-2 py-1 bg-white hover:[&:not([aria-disabled]=true)]:brightness-95 active:[&:not([aria-disabled]=true)]shadow-inner transition aria-disabled:opacity-30"
                     href={prevSearch ? `/pokemon${prevSearch}` : ""}
                     aria-disabled={!prevSearch}
                   >
                     {"<"}
                   </a>
                   <a
-                    className="rounded-full px-2 py-1 bg-gray-100 hover:[&:not([aria-disabled]=true)]:brightness-95 active:[&:not([aria-disabled]=true)]shadow-inner transition aria-disabled:opacity-30"
+                    className="rounded-full px-2 py-1 bg-white hover:[&:not([aria-disabled]=true)]:brightness-95 active:[&:not([aria-disabled]=true)]shadow-inner transition aria-disabled:opacity-30"
                     href={nextSearch ? `/pokemon${nextSearch}` : ""}
                     aria-disabled={!nextSearch}
                   >
@@ -51,17 +51,17 @@ export function View({
 
             {/* The List */}
             <div
-              className={`rounded-md shadow border border-gray-200 relative transition-opacity ${
+              className={`overflow-y-auto rounded-md shadow border border-gray-300 relative transition-opacity ${
                 fetching ? "opacity-60" : ""
               }`}
             >
-              <ul className="rounded-[inherit]">
+              <ul className="rounded-[inherit] overflow-y-auto">
                 {results.map((p) => {
                   const id = Number(p.url.split("/").at(-2));
                   return (
                     <li
                       key={p.name}
-                      className="odd:bg-gray-100 p-2 first:rounded-t-md last:rounded-b-md"
+                      className="odd:bg-white even:bg-slate-50 p-4 first:rounded-t-md last:rounded-b-md border-solid border-0 [&:not(:last-child)]:border-b border-gray-300"
                     >
                       <span className="text-gray-700">{id}.</span>{" "}
                       <a

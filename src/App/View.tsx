@@ -3,13 +3,20 @@ import { Model, Msg } from "./ModelUpdate";
 import * as PokemonPage from "../pages/Pokemon";
 import * as PokemonDetails from "../pages/PokemonDetails";
 import * as HomePage from "../pages/Home";
-import { unreachable } from "../utilities/matcher";
+import match, { unreachable } from "../utilities/matcher";
 
 export function View({ dispatch, model }: ViewProps<Model, Msg>): JSX.Element {
+  const displayShadow = match.tagged(model.page).on({
+    home: () => true,
+    loading: () => true,
+    notFound: () => true,
+    pokeDetails: () => true,
+    pokemon: () => false,
+  });
   return (
-    <div className="h-screen flex flex-col bg-gray-200">
+    <div className="h-screen flex flex-col bg-slate-100">
       {/* Main Nav */}
-      <nav className="bg-emerald-600 text-white shadow-md">
+      <nav className="bg-emerald-600 text-white shadow-md z-10">
         <ul className="flex flex-row justify-end">
           {navLinks.map((link) => (
             <a
@@ -24,8 +31,11 @@ export function View({ dispatch, model }: ViewProps<Model, Msg>): JSX.Element {
       </nav>
 
       {/* Main Content */}
-      <main className="grow flex flex-row justify-center">
-        <div className="h-full w-full max-w-7xl">
+      <main className="grow flex flex-row justify-center overflow-hidden">
+        <div
+          className="h-full w-full max-w-7xl overflow-hidden data-[shadow=true]:shadow-sm"
+          data-shadow={displayShadow}
+        >
           <RenderActivePage dispatch={dispatch} model={model} />
         </div>
       </main>

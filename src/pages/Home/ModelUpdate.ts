@@ -7,7 +7,9 @@ export type Model = {
 
 export type Msg = Tagged<"noop">;
 
-const initModel: Model = { welcomeMsg: "hi there, welcome" };
+const initModel: Model = {
+  welcomeMsg: "Hi! Thanks for checking this project out!",
+};
 
 export const init = (): [Model, Cmd<Msg>] => [initModel, Cmd.none];
 
