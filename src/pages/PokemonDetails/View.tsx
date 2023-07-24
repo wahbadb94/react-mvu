@@ -3,6 +3,7 @@ import { Pokemon, PokemonType } from "../../models/Pokemon";
 import RenderRemoteData from "../../react-mvu/RenderRemoteData";
 import { Model, Msg } from "./ModelUpdate";
 import match from "../../utilities/matcher";
+import Link from "../components/Link";
 
 export function View({
   model: { pokemon, backToListUrl },
@@ -27,33 +28,19 @@ function RenderPokemonDetails({
     <div
       className={`p-8 bg-white h-full border-x border-solid border-y-0 border-gray-300`}
     >
-      <a
-        className="hover:underline cursor-pointer text-sky-900 mb-2"
-        href={backToListUrl}
-      >
-        Back to List
-      </a>
+      <Link href={backToListUrl}>Back to List</Link>
       <div
-        className={`flex flex-row justify-between items-center py-4 px-8 border border-black rounded-md mb-4 ${getTypeClassNameSuble(
+        className={`flex flex-row justify-between items-center py-4 px-8 border border-black rounded-md mb-4 ${getTypeClassNameSubtle(
           types[0].type.name
         )}`}
       >
-        <a
-          className="hover:underline cursor-pointer"
-          href={`/pokemon/${id - 1}`}
-        >
-          prev
-        </a>
+        <Link href={`/pokemon/${id - 1}`}>prev</Link>
+
         <h1 className={"text-4xl capitalize"}>
           #{id}: {name}
         </h1>
 
-        <a
-          className="hover:underline cursor-pointer"
-          href={`/pokemon/${id + 1}`}
-        >
-          next
-        </a>
+        <Link href={`/pokemon/${id + 1}`}>next</Link>
       </div>
 
       <div className="grid grid-cols-2">
@@ -63,7 +50,7 @@ function RenderPokemonDetails({
         {/* Sprites */}
         <div className={`rounded-md`}>
           <div
-            className={`grid grid-cols-2 justify-evenly border border-black rounded-md rounded-b-none ${getTypeClassNameSuble(
+            className={`grid grid-cols-2 justify-evenly border border-black rounded-md rounded-b-none ${getTypeClassNameSubtle(
               types[0].type.name
             )}`}
           >
@@ -125,7 +112,7 @@ const getTypeClassName = (type: PokemonType) =>
     water: () => "bg-blue-500 text-white",
   });
 
-const getTypeClassNameSuble = (type: PokemonType) =>
+const getTypeClassNameSubtle = (type: PokemonType) =>
   match.literal(type).on({
     bug: () => "bg-lime-100",
     dark: () => "bg-slate-100",

@@ -1,6 +1,7 @@
 import { ViewProps } from "../../react-mvu/types";
 import RenderRemoteData from "../../react-mvu/RenderRemoteData";
 import { Model, Msg } from "./ModelUpdate";
+import Link from "../components/Link";
 
 export function View({
   model: { pokemonListResponse, offset, limit },
@@ -64,12 +65,12 @@ export function View({
                       className="odd:bg-white even:bg-slate-50 p-4 first:rounded-t-md last:rounded-b-md border-solid border-0 [&:not(:last-child)]:border-b border-gray-300"
                     >
                       <span className="text-gray-700">{id}.</span>{" "}
-                      <a
-                        className="inline-block px-2 hover:underline cursor-pointer text-blue-900 capitalize"
+                      <Link
+                        className="inline-block px-2 capitalize"
                         href={`/pokemon/${id}`}
                       >
                         {p.name}
-                      </a>
+                      </Link>
                     </li>
                   );
                 })}
