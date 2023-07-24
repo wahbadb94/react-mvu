@@ -7,7 +7,7 @@ import {
 } from "react";
 import { ViewProps } from "./types";
 import { Cmd } from "./Cmd";
-import match from "../utilities/matcher";
+import match, { Tagged } from "../utilities/matcher";
 import DevToolsInternal from "./DevTools";
 import { UrlRequest } from "../react-mvu/UrlRequest";
 
@@ -38,10 +38,19 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
 
   const dispatch = useCallback(
     (msg: Msg) => {
-      const { model, modelHistory } = get();
+      const { modelState, modelHistory, modelIndex } = get();
+
+      if (modelState.tag === "timeTravel") return;
+
+      const model = modelState.model;
       const [newModel, newCmd] = update(model, msg);
       set({
-        model: newModel,
+        modelIndex:
+          newModel === modelState.model ? modelIndex : modelHistory.length,
+        modelState:
+          newModel === modelState.model
+            ? modelState
+            : { tag: "normal", model: newModel },
         modelHistory:
           newModel === model ? modelHistory : [...modelHistory, newModel],
       });
@@ -49,6 +58,33 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
       commandQueueRef.current.push(newCmd);
     },
     [get, set, update]
+  );
+
+  const storeDispatch = useCallback(
+    (storeMsg: StoreMsg<Msg>) => {
+      const { modelHistory } = get();
+
+      match.tagged(storeMsg).on({
+        appMsg: ({ msg }) => dispatch(msg),
+        setDevToolsVisible: ({ devToolsVisible }) => set({ devToolsVisible }),
+        setModelIndex: ({ modelIndex }) => set({ modelIndex }),
+        setTimeTraveling: ({ timeTraveling }) => {
+          set(
+            timeTraveling
+              ? {
+                  modelState: { tag: "timeTravel" },
+                }
+              : {
+                  modelState: {
+                    tag: "normal",
+                    model: modelHistory[modelHistory.length - 1],
+                  },
+                }
+          );
+        },
+      });
+    },
+    [dispatch, get, set]
   );
 
   // poll for command queue changes every 100ms
@@ -146,7 +182,7 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
 
   return (
     <MvuInner
-      dispatch={dispatch}
+      storeDispatch={storeDispatch}
       useStore={useStore}
       View={View}
       enableDevTools={enableDevTools}
@@ -155,27 +191,35 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
 }
 
 type MvuInnerProps<Model extends Record<string, unknown>, Msg> = {
-  useStore: () => MvuState<Model>;
-} & Pick<MVUProps<Model, Msg>, "View" | "enableDevTools"> &
-  Pick<ViewProps<Model, Msg>, "dispatch">;
+  useStore: () => MvuStore<Model>;
+} & Pick<MVUProps<Model, Msg>, "View" | "enableDevTools"> & {
+    storeDispatch: StoreDispatch<Msg>;
+  };
 
 function MvuInner<Model extends Record<string, unknown>, Msg>({
   View,
   useStore,
   enableDevTools,
-  dispatch,
+  storeDispatch,
 }: MvuInnerProps<Model, Msg>): JSX.Element {
   const store = useStore();
+  const dispatch = useCallback(
+    (msg: Msg) => storeDispatch({ tag: "appMsg", msg }),
+    [storeDispatch]
+  );
 
   return (
     <>
-      <View model={store.model} dispatch={dispatch} />
+      <View
+        model={match.tagged(store.modelState).on({
+          normal: ({ model }) => model,
+          timeTravel: () => store.modelHistory[store.modelIndex],
+        })}
+        dispatch={dispatch}
+      />
 
       {enableDevTools && (
-        <DevToolsInternal
-          currentModel={store.model}
-          modelHistory={store.modelHistory}
-        />
+        <DevToolsInternal store={store} storeDispatch={storeDispatch} />
       )}
     </>
   );
@@ -193,17 +237,19 @@ function getCurrentPath() {
 function useMvuState<Model extends Record<string, unknown>, Msg>(
   init: MVUProps<Model, Msg>["init"]
 ): {
-  get: () => MvuState<Model>;
-  set: (value: Partial<MvuState<Model>>) => void;
+  get: () => MvuStore<Model>;
+  set: (value: Partial<MvuStore<Model>>) => void;
   subscribe: (callback: () => void) => () => void;
 } {
   const initReturnRef = useRef<readonly [Model, Cmd<Msg>]>(
     init(getCurrentPath()) // we need to be careful that this is only ever evaluated once
   );
 
-  const storeRef = useRef<MvuState<Model>>({
-    model: initReturnRef.current[0],
+  const storeRef = useRef<MvuStore<Model>>({
+    modelState: { tag: "normal", model: initReturnRef.current[0] },
     modelHistory: [initReturnRef.current[0]],
+    modelIndex: 0,
+    devToolsVisible: false,
   });
 
   const get = useCallback(() => storeRef.current, []);
@@ -214,7 +260,7 @@ function useMvuState<Model extends Record<string, unknown>, Msg>(
     return () => subscriptions.current.delete(callback);
   }, []);
 
-  const set = useCallback((value: Partial<MvuState<Model>>) => {
+  const set = useCallback((value: Partial<MvuStore<Model>>) => {
     storeRef.current = { ...storeRef.current, ...value };
     subscriptions.current.forEach((subscription) => subscription());
   }, []);
@@ -241,7 +287,21 @@ export type MVUProps<Model extends Record<string, unknown>, Msg> = {
   enableDevTools?: boolean;
 };
 
-type MvuState<Model extends Record<string, unknown>> = {
-  model: Model;
+export type MvuStore<Model extends Record<string, unknown>> = {
   modelHistory: Model[];
+  modelState: ModelState<Model>;
+  devToolsVisible: boolean;
+  modelIndex: number;
 };
+
+type ModelState<Model> =
+  | Tagged<"normal", { model: Model }>
+  | Tagged<"timeTravel">;
+
+export type StoreMsg<Msg> =
+  | Tagged<"appMsg", { msg: Msg }>
+  | Tagged<"setDevToolsVisible", { devToolsVisible: boolean }>
+  | Tagged<"setTimeTraveling", { timeTraveling: boolean }>
+  | Tagged<"setModelIndex", { modelIndex: number }>;
+
+export type StoreDispatch<Msg> = (storeMsg: StoreMsg<Msg>) => void;

@@ -1,46 +1,97 @@
 import JsonView from "@uiw/react-json-view";
-import { useState } from "react";
-//import JsonView from "@uiw/react-json-view";
+import { MvuStore, StoreDispatch } from "./MVU";
 
-type DevToolsInternalProps<T extends object> = {
-  currentModel: T;
-  modelHistory: T[];
+export type DevToolsInternalProps<
+  Model extends Record<string, unknown>,
+  Msg
+> = {
+  store: MvuStore<Model>;
+  storeDispatch: StoreDispatch<Msg>;
 };
 
-// TODO: time traveling debugger
-
-export default function DevToolsInternal<T extends object>({
-  currentModel: _,
-  modelHistory: history,
-}: DevToolsInternalProps<T>) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [show, setShow] = useState(false);
+export default function DevToolsInternal<
+  Model extends Record<string, unknown>,
+  Msg
+>({
+  store: { devToolsVisible, modelHistory, modelIndex, modelState },
+  storeDispatch,
+}: DevToolsInternalProps<Model, Msg>) {
+  const timeTraveling = modelState.tag === "timeTravel";
 
   const OpenCloseButton = (
-    <button
-      className="absolute bottom-2 right-2 p-2 rounded-md border-2 border-slate-700 bg-slate-500 text-purple-50 font-semibold"
-      onClick={() => setShow((prev) => !prev)}
-    >
-      DevTools
-    </button>
+    <div className="absolute bottom-2 right-2 p-2 flex flex-row gap-4">
+      {timeTraveling && (
+        <div className="flex flex-row items-center gap-2">
+          <button
+            className="border disabled:opacity-50 border-black rounded-full px-3 py-1.5 bg-rose-400"
+            onClick={() =>
+              storeDispatch({
+                tag: "setTimeTraveling",
+                timeTraveling: false,
+              })
+            }
+          >
+            🗙
+          </button>
+          <button
+            className="border disabled:opacity-50 border-black rounded-full px-3 py-1.5 bg-white"
+            disabled={modelIndex === 0}
+            onClick={() =>
+              storeDispatch({
+                tag: "setModelIndex",
+                modelIndex: modelIndex - 1,
+              })
+            }
+          >
+            ⬅
+          </button>
+          <button
+            className="border disabled:opacity-50 bg-white border-black rounded-full px-3 py-1.5"
+            disabled={modelIndex === modelHistory.length - 1}
+            onClick={() =>
+              storeDispatch({
+                tag: "setModelIndex",
+                modelIndex: modelIndex + 1,
+              })
+            }
+          >
+            ➡
+          </button>
+        </div>
+      )}
+
+      <button
+        className="p-2 rounded-md border-2 border-slate-700 bg-slate-500 text-purple-50 font-semibold"
+        onClick={() =>
+          storeDispatch({
+            tag: "setDevToolsVisible",
+            devToolsVisible: !devToolsVisible,
+          })
+        }
+      >
+        DevTools
+      </button>
+    </div>
   );
 
   return (
     <>
-      {OpenCloseButton}
+      {!devToolsVisible && OpenCloseButton}
 
-      {show && (
+      {devToolsVisible && (
         <div className="absolute bg-black/20 inset-0">
           <div className="absolute bg-white shadow-md left-1/2 translate-x-[-50%] top-1/2 translate-y-[-50%] rounded-md border border-gray-400 h-2/3 w-[90%]">
             <div className="flex flex-row h-full rounded-md flex-nowrap">
               {/* Side Bar */}
               <ol className="bg-slate-200 border rounded-md border-r-gray-400 overflow-y-auto overflow-x-hidden">
-                {history.map((_, index) => (
+                {modelHistory.map((_, index) => (
                   <li
                     key={index}
                     className="hover:bg-slate-300 px-8 py-4 cursor-pointer relative right-[-1px] border-r-gray-400 data-[active=true]:border-r-transparent data-[active=true]:bg-white data-[active=true]:hover:bg-slate-50 border border-transparent border-b-gray-400"
-                    onClick={() => setActiveIndex(index)}
-                    data-active={activeIndex === index}
+                    onClick={() =>
+                      storeDispatch({ tag: "setModelIndex", modelIndex: index })
+                    }
+                    data-active={index === modelIndex}
                   >
                     {index}
                   </li>
@@ -48,9 +99,23 @@ export default function DevToolsInternal<T extends object>({
               </ol>
 
               {/* Main View */}
-              <div className="p-4 grow overflow-auto">
-                <div className="shadow-inner overflow-auto bg-slate-50 p-4 h-full rounded-md border border-gray-200">
-                  <JsonView value={history[activeIndex]} collapsed={4} />
+              <div className="p-4 grow overflow-auto flex flex-col">
+                <div className="mb-2">
+                  <input
+                    type="checkbox"
+                    id="time-travel-checkbox"
+                    checked={timeTraveling}
+                    onChange={() =>
+                      storeDispatch({
+                        tag: "setTimeTraveling",
+                        timeTraveling: !timeTraveling,
+                      })
+                    }
+                  />{" "}
+                  <label htmlFor="time-travel-checkbox">Time Travel?</label>
+                </div>
+                <div className="shadow-inner overflow-auto bg-slate-50 grow p-4 rounded-md border border-gray-200">
+                  <JsonView value={modelHistory[modelIndex]} collapsed={4} />
                 </div>
               </div>
             </div>
@@ -59,6 +124,16 @@ export default function DevToolsInternal<T extends object>({
           {OpenCloseButton}
         </div>
       )}
+
+      {timeTraveling && !devToolsVisible && <TimeTravelingIndicator />}
     </>
+  );
+}
+
+function TimeTravelingIndicator() {
+  return (
+    <div className="absolute left-2 text-center border-amber-400 border-4 bg-white bottom-4 text-2xl z-20 animate-bounce rounded-md py-2 px-4">
+      Time Traveling!{" "}
+    </div>
   );
 }

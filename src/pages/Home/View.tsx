@@ -51,40 +51,37 @@ export function View({
           time.
         </p>
 
-        <p>
-          Fundamentally there are only 3 things:
-          <ol className="px-8 list-disc mt-1">
-            <li>
-              <span className="font-bold">M</span>odel (data structure): The
-              current state of your application. React developers tend to use
-              the word
-              {` "state"`}, so you can think of <Code>Model</Code> as being your
-              state. The main difference is that in MVU, your app only has one
-              state. So <Code>Model</Code> in MVU {`isn't `} just any state,
-              {` it's`} <span className="italic">THE</span> state.
-            </li>
-            <li>
-              <span className="font-bold">V</span>iew (function): A function
-              (React functional component), that takes the model as a prop, and
-              displays the UI based on that model.
-            </li>
-            <li>
-              <span className="font-bold">U</span>pdate (function): A function
-              that, when given the current model and some message, knows how to
-              update the model, i.e. produce the next state of the app. As a
-              side note, this is done <i>immutably</i>, meaning{" "}
-              <Code>update</Code> returns a new <Code>Model</Code>, rather than
-              making changes to the old one. A nice benefit of doing things this
-              way is we can keep track of the history of our application by
-              maintaining a list of all the <Code>Model</Code>s the{" "}
-              <Code>update</Code> function has produced during the life of the
-              app. You can actually view the <Code>Model</Code> history for this
-              site if you would like. Try navigating to the{" "}
-              <Link href="/pokemon">Pokemon Page</Link> and then click the
-              DevTools in the bottom right corner.
-            </li>
-          </ol>
-        </p>
+        <p>Fundamentally there are only 3 things:</p>
+        <ol className="px-8 list-disc">
+          <li>
+            <span className="font-bold">M</span>odel (data structure): The
+            current state of your application. React developers tend to use the
+            word
+            {` "state"`}, so you can think of <Code>Model</Code> as being your
+            state. The main difference is that in MVU, your app only has one
+            state. So <Code>Model</Code> in MVU {`isn't `} just any state,
+            {` it's`} <span className="italic">THE</span> state.
+          </li>
+          <li>
+            <span className="font-bold">V</span>iew (function): A function
+            (React functional component), that takes the model as a prop, and
+            displays the UI based on that model.
+          </li>
+          <li>
+            <span className="font-bold">U</span>pdate (function): A function
+            that, when given the current model and some message, knows how to
+            update the model, i.e. produce the next state of the app. As a side
+            note, this is done <i>immutably</i>, meaning <Code>update</Code>{" "}
+            returns a new <Code>Model</Code>, rather than making changes to the
+            old one. A nice benefit of doing things this way is we can keep
+            track of the history of our application by maintaining a list of all
+            the <Code>Model</Code>s the <Code>update</Code> function has
+            produced during the life of the app. You can actually view the{" "}
+            <Code>Model</Code> history for this site if you would like. Try
+            navigating to the <Link href="/pokemon">Pokemon Page</Link> and then
+            click the DevTools in the bottom right corner.
+          </li>
+        </ol>
 
         <p>
           Technically the acronym MVU is incomplete. There is also the{" "}
