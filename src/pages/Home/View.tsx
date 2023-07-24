@@ -9,7 +9,7 @@ export function View({
   model: { welcomeMsg },
 }: Pick<ViewProps<Model, Msg>, "model">): JSX.Element {
   return (
-    <div className="py-4 px-8 bg-white h-full border-x border-solid border-y-0 border-gray-300 flex flex-col gap-4 overflow-y-auto pb-16">
+    <div className="py-4 px-8 bg-white h-full border-x border-solid border-y-0 border-gray-300 flex flex-col gap-6 overflow-y-auto pb-16">
       <section className="text-center">
         <h1 className="text-2xl font-semibold">
           This is a Demo for the{" "}
@@ -136,9 +136,7 @@ export function View({
           So what {`I'm`} saying is: {`"There is no `} <Code>useState</Code>
           {` hook!"`} And not just in user code, the <Code>react-mvu</Code>{" "}
           source code {`doesn't`} have a single <Code>useState</Code> instance
-          either! (Though, I think technically there is one abstracted away via
-          the <Code>useSyncExternalStore</Code> hook, but we can pretend we{" "}
-          {`don't`} know that 😉) All state transitions are piped through a
+          either! All state transitions are piped through a
           <span className="italic"> single</span> <Code>update</Code>
           function, which produces a new version of the{" "}
           <span className="italic">singular</span> state of your application.
@@ -148,6 +146,29 @@ export function View({
           <span className="font-semibold">TLDR:</span> Friendship with stateful
           components terminated. Functional purity is my best friend now.
         </p>
+      </section>
+
+      <section
+        id="where-is-useState"
+        className="flex flex-col gap-2 [&>p]:text-gray-900"
+      >
+        <h2 className="text-xl font-semibold">{`That's cool, but can it do HTTP requests? or Caching?`}</h2>
+
+        <p>
+          Yup! and Yup! But I have to talk about <Code>{`Cmd<Msg>`}</Code>{" "}
+          first.
+        </p>
+      </section>
+
+      <section
+        id="where-is-useState"
+        className="flex flex-col gap-2 [&>p]:text-gray-900"
+      >
+        <h2 className="text-xl font-semibold">
+          Where is the rest of the FAQ section?
+        </h2>
+
+        <p>Coming soon..?</p>
       </section>
     </div>
   );

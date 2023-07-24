@@ -78,7 +78,7 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
         nextCmd = commandQueueRef.current.shift();
       }
 
-      handle = setTimeout(pollCmdQueueChange, 100);
+      handle = setTimeout(pollCmdQueueChange, 50);
     })();
 
     return () => (handle !== null ? clearTimeout(handle) : undefined);
@@ -93,7 +93,7 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
         prevUrlRef.current = window.location.href;
         dispatch(onPathChange(getCurrentPath()));
       }
-      handle = setTimeout(pollUrlChange, 100);
+      handle = setTimeout(pollUrlChange, 50);
     })();
 
     return () => (handle !== null ? clearTimeout(handle) : undefined);

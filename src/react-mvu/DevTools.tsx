@@ -7,6 +7,8 @@ type DevToolsInternalProps<T extends object> = {
   modelHistory: T[];
 };
 
+// TODO: time traveling debugger
+
 export default function DevToolsInternal<T extends object>({
   currentModel: _,
   modelHistory: history,

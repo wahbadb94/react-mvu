@@ -33,14 +33,14 @@ export function View({
                 {/* Pagination */}
                 <div>
                   <a
-                    className="rounded-full px-2 py-1 bg-white hover:[&:not([aria-disabled]=true)]:brightness-95 active:[&:not([aria-disabled]=true)]shadow-inner transition aria-disabled:opacity-30"
+                    className="text-center inline-block border border-transparent rounded-full px-[11px] py-1 bg-white hover:aria-[disabled=false]:bg-gray-100 hover:aria-[disabled=false]:border-gray-200 active:aria-[disabled=false]:shadow-inner transition aria-disabled:opacity-30"
                     href={prevSearch ? `/pokemon${prevSearch}` : ""}
                     aria-disabled={!prevSearch}
                   >
                     {"<"}
                   </a>
                   <a
-                    className="rounded-full px-2 py-1 bg-white hover:[&:not([aria-disabled]=true)]:brightness-95 active:[&:not([aria-disabled]=true)]shadow-inner transition aria-disabled:opacity-30"
+                    className="text-center inline-block border border-transparent ml-2 rounded-full px-[11px] py-1 bg-white hover:aria-[disabled=false]:bg-gray-100 hover:aria-[disabled=false]:border-gray-200 active:aria-[disabled=false]:shadow-inner transition aria-disabled:opacity-30"
                     href={nextSearch ? `/pokemon${nextSearch}` : ""}
                     aria-disabled={!nextSearch}
                   >
