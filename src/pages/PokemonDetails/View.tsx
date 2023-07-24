@@ -34,7 +34,11 @@ function RenderPokemonDetails({
           types[0].type.name
         )}`}
       >
-        <Link href={`/pokemon/${id - 1}`}>prev</Link>
+        {id === 1 ? (
+          <span className="cursor-not-allowed opacity-50">prev</span>
+        ) : (
+          <Link href={`/pokemon/${id - 1}`}>prev</Link>
+        )}
 
         <h1 className={"text-4xl capitalize"}>
           #{id}: {name}

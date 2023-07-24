@@ -25,9 +25,7 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
 }: MVUProps<Model, Msg>): JSX.Element {
   const prevUrlRef = useRef(window.location.href);
 
-  const commandQueueRef = useRef([] as Cmd<Msg>[]);
-
-  const { get, set, subscribe } = useMvuState(init);
+  const { get, set, subscribe, commandQueueRef } = useMvuState(init);
 
   const useStore = useCallback(
     function useStore() {
@@ -57,7 +55,7 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
 
       commandQueueRef.current.push(newCmd);
     },
-    [get, set, update]
+    [commandQueueRef, get, set, update]
   );
 
   const storeDispatch = useCallback(
@@ -176,7 +174,7 @@ export function Mvu<Model extends Record<string, unknown>, Msg>({
     if (initializedRef.current.value) return;
     initializedRef.current.value = true;
 
-    // TODO: switch to the broswer navigation API when it is available
+    // TODO: switch to the browser navigation API when it is available
     document.addEventListener("click", overrideRouting);
   }, [overrideRouting]);
 
@@ -240,10 +238,13 @@ function useMvuState<Model extends Record<string, unknown>, Msg>(
   get: () => MvuStore<Model>;
   set: (value: Partial<MvuStore<Model>>) => void;
   subscribe: (callback: () => void) => () => void;
+  commandQueueRef: React.MutableRefObject<Cmd<Msg>[]>;
 } {
   const initReturnRef = useRef<readonly [Model, Cmd<Msg>]>(
     init(getCurrentPath()) // we need to be careful that this is only ever evaluated once
   );
+
+  const commandQueueRef = useRef([initReturnRef.current[1]]);
 
   const storeRef = useRef<MvuStore<Model>>({
     modelState: { tag: "normal", model: initReturnRef.current[0] },
@@ -269,6 +270,7 @@ function useMvuState<Model extends Record<string, unknown>, Msg>(
     get,
     set,
     subscribe,
+    commandQueueRef,
   };
 }
 
