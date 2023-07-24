@@ -55,7 +55,7 @@ export default match;
 
 export type Tagged<
   T extends string,
-  P extends object | null = null
+  P extends Record<string, unknown> | null = null
 > = null extends P ? { tag: T } : { tag: T } & P;
 
 export const tagged =
@@ -73,13 +73,14 @@ export function unreachable(_: never): never {
 export const Constructors =
   <TUnion extends Tagged<string, Record<string, unknown>>>() =>
   <Tag extends TUnion["tag"]>(tag: Tag) =>
-  <Variant extends TUnion>(data: DataFromUnionTag<TUnion, Variant, Tag>) => ({
-    tag,
-    ...data,
-  });
+  <Variant extends TUnion>(data: DataFromUnionTag<TUnion, Variant, Tag>) =>
+    ({
+      tag,
+      ...data,
+    } as TUnion);
 
 type DataFromUnionTag<
-  TUnion extends Tagged<string, Record<string, unknown>>,
+  TUnion extends Tagged<string, Record<string, unknown> | null>,
   Variant extends TUnion,
   Tag extends TUnion["tag"]
 > = Variant extends Tagged<Tag, infer Data> ? Omit<Data, "tag"> : never;

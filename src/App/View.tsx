@@ -34,24 +34,24 @@ export function View({ dispatch, model }: ViewProps<Model, Msg>): JSX.Element {
 }
 
 function RenderActivePage({
-  model: { activePage },
+  model: { page },
   dispatch,
 }: ViewProps<Model, Msg>): JSX.Element {
-  switch (activePage.tag) {
+  switch (page.tag) {
     case "home":
-      return <HomePage.View model={activePage} />;
+      return <HomePage.View model={page} />;
     case "pokemon":
       return (
         <PokemonPage.View
-          model={activePage}
-          dispatch={(msg) => dispatch({ tag: "pokemon", msg })}
+          model={page}
+          dispatch={(msg) => dispatch(Msg("pokemon")({ msg }))}
         />
       );
-    case "pokemonDetails":
+    case "pokeDetails":
       return (
         <PokemonDetails.View
-          model={activePage}
-          dispatch={(msg) => dispatch({ tag: "pokemonDetails", msg })}
+          model={page}
+          dispatch={(msg) => dispatch(Msg("pokeDetails")({ msg }))}
         />
       );
     case "loading":
@@ -59,7 +59,7 @@ function RenderActivePage({
     case "notFound":
       return <>not found.</>;
     default:
-      return unreachable(activePage);
+      return unreachable(page);
   }
 }
 

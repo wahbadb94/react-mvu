@@ -149,7 +149,7 @@ export const UrlParser = {
   top,
   int: pathPart(int),
   word: pathPart(word),
-  alphaNumericString: pathPart(alphaNumericString),
+  str: pathPart(alphaNumericString),
   s: <S extends string>(str: S) => pipe(str, s, erasable, pathPart),
   pathPart,
   params,

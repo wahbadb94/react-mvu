@@ -1,7 +1,4 @@
 import { Cmd } from "../../react-mvu/Cmd";
-import { UrlParser } from "../../react-mvu/UrlParser";
-const { path, top, map } = UrlParser;
-import { ModelUpdate } from "../../react-mvu/types";
 import match, { Tagged } from "../../utilities/matcher";
 
 export type Model = {
@@ -12,11 +9,9 @@ export type Msg = Tagged<"noop">;
 
 const initModel: Model = { welcomeMsg: "hi there, welcome" };
 
-export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
-  init: () => [initModel, Cmd.none],
-  update: (model: Model, msg: Msg): [Model, Cmd<Msg>] =>
-    match.tagged(msg).on({
-      noop: () => [model, Cmd.none],
-    }),
-  parseUrl: () => map(path(top))(() => [initModel, Cmd.none]),
-};
+export const init = (): [Model, Cmd<Msg>] => [initModel, Cmd.none];
+
+export const update = (model: Model, msg: Msg): [Model, Cmd<Msg>] =>
+  match.tagged(msg).on({
+    noop: () => [model, Cmd.none],
+  });

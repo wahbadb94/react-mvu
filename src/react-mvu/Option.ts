@@ -21,6 +21,14 @@ const flatMap = <A>(opt: Option<A>) => ({
 const some = <T>(data: T) => tagged("some")({ data });
 const none = { tag: "none" };
 
+const defaultValue =
+  <A>(a: A) =>
+  (opt: Option<A>) =>
+    match.tagged(opt).on({
+      none: () => a,
+      some: ({ data }) => data,
+    });
+
 const withDefault =
   <A>(opt: Option<A>) =>
   (deflt: A): A =>
@@ -35,4 +43,5 @@ export const Option = {
   some,
   none,
   withDefault,
+  defaultValue,
 };

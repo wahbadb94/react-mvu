@@ -43,14 +43,17 @@ const map =
       ok: ({ parsed, rest }) => ok(f(parsed), rest),
     });
 
-/* ----------------------------------------------------------------------------
- *
- * ----------------------------- Type Classes ---------------------------------
- *
- * ------------------------------------------------------------------------- */
+const withDefault =
+  <A>(a: A) =>
+  (result: ParseResult<A>) =>
+    match.tagged(result).on({
+      fail: () => a,
+      ok: ({ parsed }) => parsed,
+    });
 
 export const ParseResult = {
   ok,
   fail,
   map,
+  withDefault,
 };

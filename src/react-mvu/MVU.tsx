@@ -1,169 +1,247 @@
-import { FC, useEffect, useRef } from "react";
-import { ModelUpdate, ViewProps } from "./types";
+import {
+  FC,
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
+import { ViewProps } from "./types";
 import { Cmd } from "./Cmd";
-import { create } from "zustand";
 import match from "../utilities/matcher";
-import { Parser } from "./Parser";
 import DevToolsInternal from "./DevTools";
-
-export type MVUProps<Model extends object, Msg> = {
-  View: FC<ViewProps<Model, Msg>>;
-  enableDevTools?: boolean;
-} & ModelUpdate<Model, Msg>;
-
-type MvuState<Model extends object, Msg> = {
-  model: Model;
-  modelHistory: Model[];
-  commmandQueue: Cmd<Msg>[];
-  dispatch: (msg: Msg) => void;
-  processCmdQueue: () => void;
-  handlePathChange: (location: Location) => void;
-};
+import { UrlRequest } from "../react-mvu/UrlRequest";
 
 const initialized = {
   value: false,
 };
 
-export default function Mvu<Model extends object, Msg>({
+export function Mvu<Model extends Record<string, unknown>, Msg>({
   View,
   init,
+  onPathChange,
+  onUrlRequest,
   update,
-  parseUrl,
-  enableDevTools = false,
+  enableDevTools,
 }: MVUProps<Model, Msg>): JSX.Element {
-  const initializedRef = useRef(initialized);
+  const prevUrlRef = useRef(window.location.href);
 
+  const commandQueueRef = useRef([] as Cmd<Msg>[]);
+
+  const { get, set, subscribe } = useMvuState(init);
+
+  const useStore = useCallback(
+    function useStore() {
+      return useSyncExternalStore(subscribe, get);
+    },
+    [get, subscribe]
+  );
+
+  const dispatch = useCallback(
+    (msg: Msg) => {
+      const { model, modelHistory } = get();
+      const [newModel, newCmd] = update(model, msg);
+      set({
+        model: newModel,
+        modelHistory:
+          newModel === model ? modelHistory : [...modelHistory, newModel],
+      });
+
+      commandQueueRef.current.push(newCmd);
+    },
+    [get, set, update]
+  );
+
+  // poll for command queue changes every 100ms
   useEffect(() => {
-    if (initializedRef.current.value) return;
-    initializedRef.current.value = true;
+    let handle: NodeJS.Timeout | null = null;
 
-    // set up routing override
-    // TODO: switch to the broswer navigation API when it is available
-    document.addEventListener("click", overrideRouting);
-  }, []);
+    function processCmd(cmd: Cmd<Msg>) {
+      match.tagged(cmd()).on<void>({
+        none: () => undefined,
+        msg: ({ msg }) => dispatch(msg),
+        promise: ({ promise }) => {
+          promise.then(dispatch);
+        },
+        nav: ({ type }) =>
+          match.tagged(type).on<void>({
+            load: ({ href }) => (window.location.href = href),
+            push: ({ url }) => history.pushState({}, "", url),
+          }),
+        batch: ({ cmds }) => cmds.forEach(processCmd),
+      });
+    }
 
-  const useMvuStoreRef = useRef(
-    create<MvuState<Model, Msg>>((set, get) => {
-      const [initModel, initCmd] = init();
-
-      // helper for processing commands
-      function processCmd(cmd: Cmd<Msg>) {
-        const { dispatch } = get();
-        return match.tagged(cmd()).on<void>({
-          none: () => undefined,
-          msg: ({ msg }) => dispatch(msg),
-          promise: ({ promise }) => {
-            promise.then(dispatch);
-          },
-          batch: ({ cmds: batch }) => batch.forEach(processCmd),
-        });
+    (function pollCmdQueueChange() {
+      let nextCmd = commandQueueRef.current.shift();
+      while (nextCmd) {
+        processCmd(nextCmd);
+        nextCmd = commandQueueRef.current.shift();
       }
 
-      // return the store
-      return {
-        model: initModel,
-        modelHistory: [initModel],
-        commmandQueue: [initCmd],
-        dispatch: (msg) =>
-          set((prev) => {
-            const [newModel, cmd] = update(prev.model, msg);
-            return {
-              commmandQueue: [...prev.commmandQueue, cmd],
-              model: newModel,
-              modelHistory: [...prev.modelHistory, newModel],
-            };
-          }),
-        processCmdQueue: () => {
-          const commandQueue = get().commmandQueue;
-          if (commandQueue.length === 0) return;
+      handle = setTimeout(pollCmdQueueChange, 100);
+    })();
 
-          commandQueue.forEach(processCmd);
-          set({ commmandQueue: [] });
-        },
-        handlePathChange: (location) =>
-          set((prev) => {
-            const result = Parser.parse(parseUrl(prev.model))(
-              location.pathname + location.search
-            );
-            if (result.tag === "fail") return {};
-
-            const [newModel, cmd] = result.parsed;
-            return {
-              model: newModel,
-              modelHistory: [...prev.modelHistory, newModel],
-              commmandQueue: [...prev.commmandQueue, cmd],
-            };
-          }),
-      };
-    })
-  );
-
-  const model = useMvuStoreRef.current((store) => store.model);
-  const modelHistory = useMvuStoreRef.current((store) => store.modelHistory);
-  const commandQueue = useMvuStoreRef.current((store) => store.commmandQueue);
-  const dispatch = useMvuStoreRef.current((store) => store.dispatch);
-  const handlePathChange = useMvuStoreRef.current(
-    (store) => store.handlePathChange
-  );
-  const processCmdQueue = useMvuStoreRef.current(
-    (store) => store.processCmdQueue
-  );
-
-  // process command queue when it changes
-  useEffect(() => processCmdQueue(), [commandQueue, processCmdQueue]);
+    return () => (handle !== null ? clearTimeout(handle) : undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // poll url changes every 100ms
-  const prevUrlRef = useRef<string | null>(null);
   useEffect(() => {
     let handle: NodeJS.Timeout | null = null;
     (function pollUrlChange() {
       if (window.location.href !== prevUrlRef.current) {
-        handlePathChange(window.location);
         prevUrlRef.current = window.location.href;
+        dispatch(onPathChange(getCurrentPath()));
       }
       handle = setTimeout(pollUrlChange, 100);
     })();
 
     return () => (handle !== null ? clearTimeout(handle) : undefined);
-  }, [handlePathChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const overrideRouting = useCallback(
+    (ev: MouseEvent) => {
+      const target = ev.target as HTMLElement;
+      if (target.tagName !== "A") return;
+
+      const link = target as HTMLAnchorElement;
+
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      const newUrl = new URL(link.href);
+
+      if (newUrl.origin !== document.location.origin) {
+        dispatch(onUrlRequest(UrlRequest("external")({ href: newUrl.href })));
+        return;
+      }
+      // otherwise override internal routes with history api
+      // to keep the current page loaded, and do all routing
+      // in a SPA style.
+      else {
+        const routesAreSame =
+          newUrl.pathname === document.location.pathname &&
+          newUrl.search === document.location.search &&
+          newUrl.hash === document.location.hash;
+
+        if (!routesAreSame) {
+          dispatch(onUrlRequest(UrlRequest("internal")({ url: newUrl })));
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // set up routing override
+  const initializedRef = useRef(initialized);
+  useEffect(() => {
+    if (initializedRef.current.value) return;
+    initializedRef.current.value = true;
+
+    // TODO: switch to the broswer navigation API when it is available
+    document.addEventListener("click", overrideRouting);
+  }, [overrideRouting]);
+
+  return (
+    <MvuInner
+      dispatch={dispatch}
+      useStore={useStore}
+      View={View}
+      enableDevTools={enableDevTools}
+    />
+  );
+}
+
+type MvuInnerProps<Model extends Record<string, unknown>, Msg> = {
+  useStore: () => MvuState<Model>;
+} & Pick<MVUProps<Model, Msg>, "View" | "enableDevTools"> &
+  Pick<ViewProps<Model, Msg>, "dispatch">;
+
+function MvuInner<Model extends Record<string, unknown>, Msg>({
+  View,
+  useStore,
+  enableDevTools,
+  dispatch,
+}: MvuInnerProps<Model, Msg>): JSX.Element {
+  const store = useStore();
 
   return (
     <>
-      <View model={model} dispatch={dispatch} />
+      <View model={store.model} dispatch={dispatch} />
 
       {enableDevTools && (
-        <DevToolsInternal currentModel={model} modelHistory={modelHistory} />
+        <DevToolsInternal
+          currentModel={store.model}
+          modelHistory={store.modelHistory}
+        />
       )}
     </>
   );
 }
+/* ----------------------------------------------------------------------------
+ *
+ * ------------------------------ Helpers -------------------------------------
+ *
+ * ------------------------------------------------------------------------- */
 
-function overrideRouting(ev: MouseEvent) {
-  const target = ev.target as HTMLElement;
-  if (target.tagName !== "A") return;
-
-  const link = target as HTMLAnchorElement;
-
-  const newUrl = new URL(link.href);
-
-  // if we are linking externally, then allow default behavior
-  if (newUrl.origin !== document.location.origin) return;
-
-  // otherwise override internal routes with history api
-  // to keep the current page loaded, and do all routing
-  // in a SPA style.
-
-  const routesAreSame =
-    newUrl.pathname === document.location.pathname &&
-    newUrl.search === document.location.search &&
-    newUrl.hash === document.location.hash;
-
-  console.log(newUrl.pathname);
-
-  if (!routesAreSame) {
-    history.pushState({}, "", newUrl);
-  }
-
-  ev.preventDefault();
-  ev.stopPropagation();
+function getCurrentPath() {
+  return window.location.pathname + window.location.search;
 }
+
+function useMvuState<Model extends Record<string, unknown>, Msg>(
+  init: MVUProps<Model, Msg>["init"]
+): {
+  get: () => MvuState<Model>;
+  set: (value: Partial<MvuState<Model>>) => void;
+  subscribe: (callback: () => void) => () => void;
+} {
+  const initReturnRef = useRef<readonly [Model, Cmd<Msg>]>(
+    init(getCurrentPath()) // we need to be careful that this is only ever evaluated once
+  );
+
+  const storeRef = useRef<MvuState<Model>>({
+    model: initReturnRef.current[0],
+    modelHistory: [initReturnRef.current[0]],
+  });
+
+  const get = useCallback(() => storeRef.current, []);
+
+  const subscriptions = useRef(new Set<() => void>());
+  const subscribe = useCallback((callback: () => void) => {
+    subscriptions.current.add(callback);
+    return () => subscriptions.current.delete(callback);
+  }, []);
+
+  const set = useCallback((value: Partial<MvuState<Model>>) => {
+    storeRef.current = { ...storeRef.current, ...value };
+    subscriptions.current.forEach((subscription) => subscription());
+  }, []);
+
+  return {
+    get,
+    set,
+    subscribe,
+  };
+}
+
+/* ----------------------------------------------------------------------------
+ *
+ * -------------------------------- Types -------------------------------------
+ *
+ * ------------------------------------------------------------------------- */
+
+export type MVUProps<Model extends Record<string, unknown>, Msg> = {
+  init: (path: string) => readonly [Model, Cmd<Msg>];
+  update: (model: Model, msg: Msg) => readonly [Model, Cmd<Msg>];
+  View: FC<ViewProps<Model, Msg>>;
+  onUrlRequest: (urlRequest: UrlRequest) => Msg;
+  onPathChange: (path: string) => Msg;
+  enableDevTools?: boolean;
+};
+
+type MvuState<Model extends Record<string, unknown>> = {
+  model: Model;
+  modelHistory: Model[];
+};

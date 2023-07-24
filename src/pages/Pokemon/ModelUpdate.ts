@@ -1,13 +1,10 @@
 import { RemoteData } from "../../react-mvu/RemoteData";
 import { Cmd } from "../../react-mvu/Cmd";
-const { opt, s, search, intParam, path } = UrlParser;
 import pokemonService, {
   FetchPokemonResponse,
   GetListParams,
 } from "../../services/pokemonService";
 import match, { Tagged, Constructors } from "../../utilities/matcher";
-import { ModelUpdate } from "../../react-mvu/types";
-import { UrlParser } from "../../react-mvu/UrlParser";
 
 export type Model = {
   pokemonListResponse: RemoteData<FetchPokemonResponse>;
@@ -16,71 +13,47 @@ export type Model = {
 export type Msg =
   | Tagged<"gotPokemon", { response: FetchPokemonResponse }>
   | Tagged<"fetchPokemon", GetListParams>;
+
 const Msg = Constructors<Msg>();
 
-// URL
-const parser = path(
-  s("pokemon"),
-  opt(search(intParam("offset"), intParam("limit")))
-);
+export const init = (params: GetListParams): [Model, Cmd<Msg>] => {
+  const [cmd, cachedData] = pokemonService.getList(params, (response) =>
+    Msg("gotPokemon")({ response })
+  );
 
-export const { init, parseUrl, update }: ModelUpdate<Model, Msg> = {
-  init: () => [
-    { pokemonListResponse: RemoteData.notStarted, limit: 20, offset: 0 },
-    Cmd.none,
-  ],
-  update: ({ limit, offset }, msg) =>
-    match.tagged(msg).on({
-      gotPokemon: ({ response }) => [
-        {
-          pokemonListResponse: RemoteData.succeeded(response),
-          limit,
-          offset,
-        },
-        Cmd.none,
-      ],
-      fetchPokemon: ({ limit, offset }) => {
-        const [cmd, cachedData] = pokemonService.getList(
-          { limit, offset },
-          (response) => Msg("gotPokemon")({ response })
-        );
+  return [
+    {
+      pokemonListResponse: RemoteData.mapCache(cachedData),
+      ...params,
+    },
+    cmd,
+  ];
+};
 
-        return [
-          {
-            pokemonListResponse: RemoteData.mapCache(cachedData),
-            limit,
-            offset,
-          },
-          cmd,
-        ];
+export const update = ({ limit, offset }: Model, msg: Msg): [Model, Cmd<Msg>] =>
+  match.tagged(msg).on({
+    gotPokemon: ({ response }) => [
+      {
+        pokemonListResponse: RemoteData.succeeded(response),
+        limit,
+        offset,
       },
-    }),
-  parseUrl: ({ pokemonListResponse }) =>
-    UrlParser.map(parser)((searchParams) => {
-      const { limit, offset } = match.tagged(searchParams).on({
-        none: () => ({ limit: 20, offset: 0 }),
-        some: ({ data }) => data,
-      });
+      Cmd.none,
+    ],
 
+    fetchPokemon: ({ limit, offset }) => {
       const [cmd, cachedData] = pokemonService.getList(
         { limit, offset },
         (response) => Msg("gotPokemon")({ response })
       );
 
-      const placeholder = match.tagged(pokemonListResponse).on({
-        succeeded: ({ data }) => data,
-        inProgress: ({ placeholder }) => placeholder,
-        failed: () => undefined,
-        notStarted: () => undefined,
-      });
-
       return [
         {
-          pokemonListResponse: RemoteData.mapCache(cachedData, placeholder),
+          pokemonListResponse: RemoteData.mapCache(cachedData),
           limit,
           offset,
         },
         cmd,
       ];
-    }),
-};
+    },
+  });
