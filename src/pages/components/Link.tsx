@@ -15,7 +15,7 @@ export default function Link({
   return (
     <a
       {...anchorProps}
-      className={"text-blue-900 hover:underline " + (className ?? "")}
+      className={"text-blue-800 hover:underline " + (className ?? "")}
     >
       {children}
     </a>

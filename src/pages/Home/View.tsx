@@ -46,9 +46,8 @@ export function View({
           {`"MVU"`}{" "}
           <span className="italic">{`(also known as "The Elm Architecture" or "TEA")`}</span>{" "}
           stands for {`"Model View Update"`}, and is a way of architecting user
-          interfaces that I believe lends itself particularly well to teams of
-          developers and/or applications that need to scale and evolve over
-          time.
+          interfaces that, in my opinion, lends itself particularly well to
+          teams and/or applications that need to scale and evolve over time.
         </p>
 
         <p>Fundamentally there are only 3 things:</p>
@@ -56,30 +55,32 @@ export function View({
           <li>
             <span className="font-bold">M</span>odel (data structure): The
             current state of your application. React developers tend to use the
-            word
-            {` "state"`}, so you can think of <Code>Model</Code> as being your
-            state. The main difference is that in MVU, your app only has one
-            state. So <Code>Model</Code> in MVU {`isn't `} just any state,
+            term
+            {` "state"`}, so you can think of <Code>Model</Code> as being state.
+            The main difference is that in MVU, your app only has one state
+            object. So <Code>Model</Code> in MVU {`isn't `} just state,
             {` it's`} <span className="italic">THE</span> state.
           </li>
           <li>
             <span className="font-bold">V</span>iew (function): A function
-            (React functional component), that takes the model as a prop, and
-            displays the UI based on that model.
+            (React functional component), that takes <Code>Model</Code> as a
+            prop, and displays the UI.
           </li>
           <li>
             <span className="font-bold">U</span>pdate (function): A function
-            that, when given the current model and some message, knows how to
-            update the model, i.e. produce the next state of the app. As a side
-            note, this is done <i>immutably</i>, meaning <Code>update</Code>{" "}
-            returns a new <Code>Model</Code>, rather than making changes to the
-            old one. A nice benefit of doing things this way is we can keep
-            track of the history of our application by maintaining a list of all
-            the <Code>Model</Code>s the <Code>update</Code> function has
-            produced during the life of the app. You can actually view the{" "}
-            <Code>Model</Code> history for this site if you would like. Try
-            navigating to the <Link href="/pokemon">Pokemon Page</Link> and then
-            click the DevTools in the bottom right corner.
+            that, when given the current <Code>Model</Code> and some message,
+            knows how to update <Code>Model</Code>, i.e. produce the next state
+            of the app. As a side note, this is done <i>immutably</i>, meaning{" "}
+            <Code>update</Code> returns a new <Code>Model</Code>, rather than
+            making changes to the old one. A nice benefit of doing things this
+            way is we can keep track of the history of our application by
+            maintaining a list of all the <Code>Model</Code>s the{" "}
+            <Code>update</Code> function has produced during the life of the
+            app. In fact, you can view the <Code>Model</Code> history for{" "}
+            <span className="italic">this</span> site if you would like. Try{" "}
+            <Link href="/pokemon">navigating</Link> around for a bit and then
+            click the DevTools in the bottom right corner. I think the{" "}
+            {`"time travel"`} feature is particularly neat 😀.
           </li>
         </ol>
 
@@ -87,9 +88,9 @@ export function View({
           Technically the acronym MVU is incomplete. There is also the{" "}
           {`"Message"`} (usually written <Code>Msg</Code>) which, as mentioned
           above, is needed by the <Code>update</Code> function in order to
-          produce the next model. So, with Model, Msg, View, and Update you can
-          create the obligatory counter application. Which would look something
-          like this:
+          produce the next model. So, with <Code>Model</Code> , <Code>Msg</Code>{" "}
+          , <Code>View</Code> , and <Code>update</Code> , one can create the{" "}
+          <span className="italic">obligatory</span> counter application! 🥳
         </p>
 
         <div className="p-4 border border-gray-300 mt-4 rounded-md bg-slate-200 shadow-inner">
