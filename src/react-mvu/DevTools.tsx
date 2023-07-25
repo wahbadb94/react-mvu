@@ -23,7 +23,7 @@ export default function DevToolsInternal<
       {timeTraveling && (
         <div className="flex flex-row items-center gap-2">
           <button
-            className="border disabled:opacity-50 border-black rounded-full px-3 py-1.5 bg-rose-400"
+            className="border disabled:opacity-50 border-black rounded-full px-2.5 py-1 bg-rose-400"
             onClick={() =>
               storeDispatch({
                 tag: "setTimeTraveling",
@@ -31,10 +31,10 @@ export default function DevToolsInternal<
               })
             }
           >
-            🗙
+            <i className="fas fa-xmark"></i>
           </button>
           <button
-            className="border disabled:opacity-50 border-black rounded-full px-3 py-1.5 bg-white"
+            className="border disabled:opacity-50 border-black rounded-full px-3 py-1 bg-white"
             disabled={modelIndex === 0}
             onClick={() =>
               storeDispatch({
@@ -43,10 +43,10 @@ export default function DevToolsInternal<
               })
             }
           >
-            ⬅
+            <i className="fas fa-caret-left"></i>
           </button>
           <button
-            className="border disabled:opacity-50 bg-white border-black rounded-full px-3 py-1.5"
+            className="border disabled:opacity-50 bg-white border-black rounded-full px-3 py-1"
             disabled={modelIndex === modelHistory.length - 1}
             onClick={() =>
               storeDispatch({
@@ -55,7 +55,7 @@ export default function DevToolsInternal<
               })
             }
           >
-            ➡
+            <i className="fas fa-caret-right"></i>
           </button>
         </div>
       )}
@@ -87,7 +87,7 @@ export default function DevToolsInternal<
                 {modelHistory.map((_, index) => (
                   <li
                     key={index}
-                    className="hover:bg-slate-300 px-8 py-4 cursor-pointer relative right-[-1px] border-r-gray-400 data-[active=true]:border-r-transparent data-[active=true]:bg-white data-[active=true]:hover:bg-slate-50 border border-transparent border-b-gray-400"
+                    className="hover:bg-slate-300 flex-1 px-4 text-center md:px-6 py-2 md:py-4 cursor-pointer relative right-[-1px] border-r-gray-400 data-[active=true]:border-r-transparent data-[active=true]:bg-white data-[active=true]:hover:bg-slate-50 border border-transparent border-b-gray-400"
                     onClick={() =>
                       storeDispatch({ tag: "setModelIndex", modelIndex: index })
                     }
@@ -99,7 +99,7 @@ export default function DevToolsInternal<
               </ol>
 
               {/* Main View */}
-              <div className="p-4 grow overflow-auto flex flex-col">
+              <div className="p-4 flex-1 overflow-auto flex flex-col">
                 <div className="mb-2">
                   <input
                     type="checkbox"
@@ -132,8 +132,6 @@ export default function DevToolsInternal<
 
 function TimeTravelingIndicator() {
   return (
-    <div className="absolute left-2 text-center border-amber-400 border-4 bg-white bottom-4 text-2xl z-20 animate-bounce rounded-md py-2 px-4">
-      Time Traveling!{" "}
-    </div>
+    <i className="fas fa-triangle-exclamation text-amber-500 fa-beat  absolute bottom-5 left-4 text-2xl"></i>
   );
 }
