@@ -1,7 +1,6 @@
 import { Cmd } from "./Cmd";
 
-export async function initHttp() {
-  // const cache = window.caches ? await window.caches.open("http-cache") : null;
+export function initHttp() {
   const cache = new Map<string, Response>();
 
   function get<T, Msg>(
