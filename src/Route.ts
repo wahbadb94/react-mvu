@@ -27,24 +27,21 @@ export const Route = Constructors<Route>();
 const { oneOf, map, s, int, top, path, search, intParam, opt } = UrlParser;
 
 const route = {
-  //  "/"
   home: path(top),
 
-  // "/pokemon?offset=<int>&limit=<int>"
   pokemon: path(
     s("pokemon"),
     opt(search(intParam("offset"), intParam("limit")))
   ),
 
-  // "/pokmeon/{id}"
   pokeDetails: path(s("pokemon"), int),
 };
 
 export const getRoute = (str: string) =>
-  ParseResult.withDefault(Route("notFound")({}))(parseRoute.fn(str));
+  ParseResult.withDefault(Route("notFound")())(parseRoute.fn(str));
 
 const parseRoute = oneOf(
-  map(route.home)(() => Route("home")({})),
+  map(route.home)(Route("home")),
 
   map(route.pokemon)((params) =>
     pipe(

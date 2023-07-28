@@ -1,10 +1,12 @@
+import { EmptyObject, Expand } from "../react-mvu/types";
+
 export type UnionVariant = {
   tag: string;
 };
 
 type Tags<U extends UnionVariant> = U["tag"];
 
-type TagVariantMap<U extends UnionVariant> = {
+export type TagVariantMap<U extends UnionVariant> = {
   [T in Tags<U>]: U extends { tag: T } ? U : never;
 };
 
@@ -70,17 +72,32 @@ export function unreachable(_: never): never {
   throw "this code should be unreachable.";
 }
 
+export type VariantFromTag<
+  TUnion extends Tagged<string, Record<string, unknown>>,
+  Tag extends TUnion["tag"]
+> = {
+  [T in TUnion["tag"]]: TUnion extends TUnion[Tag] ? TUnion : never;
+}[TUnion["tag"]];
+
 export const Constructors =
   <TUnion extends Tagged<string, Record<string, unknown>>>() =>
-  <Tag extends TUnion["tag"]>(tag: Tag) =>
-  <Variant extends TUnion>(data: DataFromUnionTag<TUnion, Variant, Tag>) =>
-    ({
+  <Tag extends TUnion["tag"]>(tag: Tag): Constructor<TUnion, Tag> => {
+    const constructor = (data = {}) => ({
       tag,
       ...data,
-    } as TUnion);
+    });
 
-type DataFromUnionTag<
-  TUnion extends Tagged<string, Record<string, unknown> | null>,
-  Variant extends TUnion,
+    return constructor as unknown as Constructor<TUnion, Tag>;
+  };
+
+type Constructor<
+  TUnion extends Tagged<string, Record<string, unknown>>,
   Tag extends TUnion["tag"]
-> = Variant extends Tagged<Tag, infer Data> ? Omit<Data, "tag"> : never;
+> = EmptyObject<ConstructorData<TUnion, Tag>> extends "true"
+  ? () => TUnion
+  : (data: Expand<ConstructorData<TUnion, Tag>>) => TUnion;
+
+type ConstructorData<
+  TUnion extends Tagged<string, Record<string, unknown>>,
+  Tag extends TUnion["tag"]
+> = Omit<TagVariantMap<TUnion>[Tag], "tag">;

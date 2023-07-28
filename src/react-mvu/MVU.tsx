@@ -15,6 +15,9 @@ const initialized = {
   value: false,
 };
 
+// TODO: refactor one more time, try using a useReducer internally, but use the
+// 3rd argument to initialize instead of the second. Motivation, get rid of polling
+// in favor of reactivity.
 export function Mvu<Model extends Record<string, unknown>, Msg>({
   View,
   init,
